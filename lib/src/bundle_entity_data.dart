@@ -147,7 +147,14 @@ String getSizeWithUnitLabel(int sizeInBytes) {
 }
 
 String getPercentageOfTotalSizeWithLabel(int partPackageSize, int totalPackageSize) {
-  var percentageText = '(${((partPackageSize / totalPackageSize) * 100).toStringAsFixed(2)}%)';
+  // Fix for dart:<*> libraries that are technically not "packages"
+  if (partPackageSize > totalPackageSize && totalPackageSize == 0) {
+    totalPackageSize = partPackageSize;
+  }
+
+  final percentage = ((partPackageSize / totalPackageSize) * 100).toStringAsFixed(2);
+
+  var percentageText = '($percentage%)';
   var longestPossibleText = '(100.00%)';
 
   if (percentageText.length < longestPossibleText.length) {
