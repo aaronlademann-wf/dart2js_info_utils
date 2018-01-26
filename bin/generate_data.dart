@@ -86,8 +86,20 @@ Future<int> _generate(ArgResults argValues) async {
     final sizeSplitDocPath = '${argValues[dart2jsInfoOutputPathArg]}/data/$librarySizeSplitFileName';
     final deferredLayoutDocPath = '${argValues[dart2jsInfoOutputPathArg]}/data/$deferredLibraryLayoutFileName';
 
+    var sizeSplitFile = new File(sizeSplitDocPath);
+
+    if (!sizeSplitFile.existsSync()) {
+      sizeSplitFile.createSync(recursive: true);
+    }
+
+    var deferredLayoutFile = new File(deferredLayoutDocPath);
+
+    if (!deferredLayoutFile.existsSync()) {
+      deferredLayoutFile.createSync(recursive: true);
+    }
+
     await Process.run('dart2js_info_library_size_split', [infoJsonPath]).then((result) {
-      new File(sizeSplitDocPath).writeAsStringSync(result.stdout);
+      sizeSplitFile.writeAsStringSync(result.stdout);
 
       if (result.exitCode != 0) {
         print(result.stderr);
@@ -98,7 +110,7 @@ Future<int> _generate(ArgResults argValues) async {
     print('Successfully generated `dart2js_info_library_size_split` info within $sizeSplitDocPath.');
 
     await Process.run('dart2js_info_deferred_library_layout', [infoJsonPath]).then((result) {
-      new File(deferredLayoutDocPath).writeAsStringSync(result.stdout.toString().replaceFirst('loaded by default', 'loaded by:'));
+      deferredLayoutFile.writeAsStringSync(result.stdout.toString().replaceFirst('loaded by default', 'loaded by:'));
 
       if (result.exitCode != 0) {
         print(result.stderr);

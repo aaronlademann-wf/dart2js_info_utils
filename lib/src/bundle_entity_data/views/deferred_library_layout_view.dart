@@ -157,7 +157,13 @@ class DeferredLibraryLayoutView {
   String toString() => toJSON();
 
   void toFile() {
-    new File(this.outFile).writeAsStringSync('var ${this.outVarName} = ${this.toJSON()};');
+    var file = new File(this.outFile);
+
+    if (!file.existsSync()) {
+      file.createSync(recursive: true);
+    }
+
+    file.writeAsStringSync('var ${this.outVarName} = ${this.toJSON()};');
   }
 }
 
