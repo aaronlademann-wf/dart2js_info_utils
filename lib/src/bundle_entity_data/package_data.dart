@@ -3,14 +3,14 @@ part of wdesk.benchmark.dart2js_info.bundle_entity_data;
 /// Aggregates all [PackageLibData] instances that share a [PackageLibData.packageName] value into a
 /// single entity that represents a standalone top-level dart package found within an instance of [DeferredPartData].
 class PackageData extends BundleEntityData {
-  @override
-  final String name;
-
-  PackageData(this.name, {
+  PackageData(String name, {
+      @required
+      String dart2JsInfoOutputDir,
+      Map<String, int> entitySizeMap,
       List<PackageLibData> packageLibData = const [],
       int size,
       String deferredPartName,
-  }) {
+  }) : super(name, dart2JsInfoOutputDir: dart2JsInfoOutputDir, entitySizeMap: entitySizeMap) {
     this._size = size ?? 0;
     this._deferredPartName = deferredPartName ?? '';
 
@@ -39,6 +39,7 @@ class PackageData extends BundleEntityData {
     }
 
     return new PackageData(deSerializedData['name'],
+        dart2JsInfoOutputDir: deSerializedData['dart2JsInfoOutputDir'],
         packageLibData: generatePackageLibDataFromDeSerializedData(deSerializedData['packageLibData']),
         size: deSerializedData['size'],
         deferredPartName: deSerializedData['deferredPartName'],
@@ -96,6 +97,7 @@ class PackageData extends BundleEntityData {
   @override
   Map<String, dynamic> toMap({bool showLibraryMembers: false}) => {
     'name': name,
+    'dart2JsInfoOutputDir': dart2JsInfoOutputDir,
     'size': size,
     'deferredPartName': deferredPartName,
     'packageLibData': getSerializablePackageLibData(serialize: false, showLibraryMembers: showLibraryMembers),
@@ -104,6 +106,7 @@ class PackageData extends BundleEntityData {
   @override
   String toJSON({bool showLibraryMembers: false}) => JSON.encode({
     'name': name,
+    'dart2JsInfoOutputDir': dart2JsInfoOutputDir,
     'size': size,
     'deferredPartName': deferredPartName,
     'packageLibData': getSerializablePackageLibData(showLibraryMembers: showLibraryMembers),

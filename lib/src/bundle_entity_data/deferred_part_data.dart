@@ -2,31 +2,40 @@ part of wdesk.benchmark.dart2js_info.bundle_entity_data;
 
 /// Represents a single `main.dart.js` "part".
 class DeferredPartData extends BundleEntityData {
-  @override
-  final String name;
   final YamlList loadedBy;
   final YamlList contains;
 
-  DeferredPartData(this.name, {
+  DeferredPartData(String name, {
+      @required
+      String dart2JsInfoOutputDir,
       @required
       this.loadedBy,
       @required
       this.contains,
+      Map<String, int> entitySizeMap,
       Map<String, PackageData> packageData,
       int size,
-  }) {
+  }) : super(name, dart2JsInfoOutputDir: dart2JsInfoOutputDir, entitySizeMap: entitySizeMap) {
     this._size = size ?? 0;
     this._packageData = new SplayTreeMap<String, PackageData>.from(packageData ?? <String, PackageData>{});
 
     if (this.packageData.isEmpty) {
       this.contains.nodes.forEach((YamlNode node) {
-        final packageLibData = new PackageLibData.fromNode(this, node);
+        final packageLibData = new PackageLibData.fromNode(this, node,
+            dart2JsInfoOutputDir: dart2JsInfoOutputDir,
+            entitySizeMap: this.entitySizeMap,
+        );
 
         if (this._packageData.containsKey(packageLibData.packageName)) {
           this._packageData[packageLibData.packageName].add(packageLibData);
         } else {
           this._packageData[packageLibData.packageName] =
-              new PackageData(packageLibData.packageName, packageLibData: [packageLibData], deferredPartName: this.name);
+              new PackageData(packageLibData.packageName,
+                  dart2JsInfoOutputDir: dart2JsInfoOutputDir,
+                  entitySizeMap: this.entitySizeMap,
+                  packageLibData: [packageLibData],
+                  deferredPartName: this.name
+              );
         }
       });
     }
@@ -41,6 +50,7 @@ class DeferredPartData extends BundleEntityData {
   factory DeferredPartData.fromJSON(String serializedData) {
     Map<String, dynamic> deSerializedData = JSON.decode(serializedData);
     return new DeferredPartData(deSerializedData['name'],
+        dart2JsInfoOutputDir: deSerializedData['dart2JsInfoOutputDir'],
         loadedBy: deSerializedData['loadedBy'],
         contains: deSerializedData['contains'],
         packageData: generatePackageDataFromDeSerializedData(deSerializedData['packageData']),
@@ -75,6 +85,7 @@ class DeferredPartData extends BundleEntityData {
   @override
   Map<String, dynamic> toMap({bool showLibraryMembers: false}) => {
     'name': name,
+    'dart2JsInfoOutputDir': dart2JsInfoOutputDir,
     'loadedBy': loadedBy,
     'size': size,
 //    'contains': contains,
@@ -84,6 +95,7 @@ class DeferredPartData extends BundleEntityData {
   @override
   String toJSON({bool showLibraryMembers: false}) => JSON.encode({
     'name': name,
+    'dart2JsInfoOutputDir': dart2JsInfoOutputDir,
     'loadedBy': loadedBy,
     'size': size,
 //    'contains': contains,

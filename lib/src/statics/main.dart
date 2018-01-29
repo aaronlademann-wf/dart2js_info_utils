@@ -6,8 +6,8 @@ import 'package:dart2js_info_utils/ui.dart';
 import 'package:over_react/over_react.dart';
 import 'package:react/react_dom.dart' as react_dom;
 
-import './data/parsed/deferred_library_layout__by_package.dart' as data_by_package; // ignore: uri_does_not_exist
-import './data/parsed/deferred_library_layout__by_part.dart' as data_by_part; // ignore: uri_does_not_exist
+import './data/mapped/deferred_library_layout__by_package.dart' as data_by_package; // ignore: uri_does_not_exist
+import './data/mapped/deferred_library_layout__by_part.dart' as data_by_part; // ignore: uri_does_not_exist
 
 main() {
   setClientConfiguration();

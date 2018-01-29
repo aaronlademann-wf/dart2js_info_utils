@@ -18,14 +18,15 @@ part 'package:dart2js_info_utils/src/bundle_entity_data/package_data.dart';
 part 'package:dart2js_info_utils/src/bundle_entity_data/package_lib_data.dart';
 part 'package:dart2js_info_utils/src/bundle_entity_data/views/deferred_library_layout_view.dart';
 
+const String dart2JsInfoDeferredLibLayoutOutFileName = 'deferred_library_layout.yaml';
+const String dart2JsInfoLibSizeSplitOutFileName = 'library_size_split.txt';
+
+const String dart2JsInfoUtilMapViewByPackageFile = 'deferred_library_layout__by_package.dart';
+const String dart2JsInfoUtilMapViewByPartFile = 'deferred_library_layout__by_part.dart';
+
 const String dart2jsInfoPath = './benchmark/dart2js_info';
-const String dart2jsInfoOutputPath = '$dart2jsInfoPath/data';
-const String dart2jsInfoParsedOutputDirName = 'parsed';
-const String dart2jsInfoParsedOutputPath = '$dart2jsInfoOutputPath/$dart2jsInfoParsedOutputDirName';
-const String deferredLibraryLayoutFileName = 'deferred_library_layout.yaml';
-const String deferredLibraryLayoutOutput = '$dart2jsInfoOutputPath/$deferredLibraryLayoutFileName';
-const String librarySizeSplitFileName = 'library_size_split.txt';
-const String librarySizeSplitOutput = '$dart2jsInfoOutputPath/$librarySizeSplitFileName';
+const String dart2JsInfoOutputSubDir = 'data';
+const String dart2JsInfoUtilMapViewDataOutputSubDir = 'mapped';
 
 const String packageNameRegExPattern = r'(?:package:)(\w(\w|\d)*)(?=\/)(.*)(?:\.dart)';
 const String looseFileRegExPattern = r'^(?:\s*file:\/\/\/)*((?!\s*package:|\s*dart:).*)(?:\.dart)';
@@ -34,41 +35,28 @@ const String dartLibNameAndSizeRegExPattern = r'(dart:\w(\w|\d)*)(?:\s+)(\d+)';
 const String libraryNameAndSizeRegExPattern = r'(?:package:)(\w(\w|\d)*)(?=\/)(.*)(?:\.dart\s+)(\d+)';
 const String packageSizeRegExPattern = r'^\s*(\w+)(?:\s+)(\d+)';
 
-Map<String/*package library name*/, int/*size (in bytes)*/> packageLibrarySizeInfo = {};
+Map<String/*entity name*/, int/*size (in bytes)*/> entitySizeInfo = {};
 Map<String/*package package name*/, int/*size (in bytes)*/> packageSizeInfo = {};
-List<String> librarySizeSplitOutputSrc;
 
-void setPackageLibrarySizeInfo({String librarySizeSplitOutput: librarySizeSplitOutput}) {
-  var sizeInfoSrc = librarySizeSplitOutputSrc ?? new File(librarySizeSplitOutput).readAsLinesSync();
+/// `dart:<dart_lib>`
+String getDartLibraryNameFromSrc(String str) => new RegExp(dartLibNameRegExPattern).firstMatch(str)?.group(0) ?? null;
 
-  sizeInfoSrc.forEach((line) {
-    var libraryName = getPackageLibraryNameFromSrc(line);
+/// `file:///` or `web/<some_dart_file>.dart`
+String getLooseFilePackageNameFromSrc(String str) => new RegExp(looseFileRegExPattern).firstMatch(str)?.group(1) ?? null;
 
-    if (libraryName.isNotEmpty) {
-      packageLibrarySizeInfo[libraryName] = getPackageLibrarySizeInBytesFromSrc(line);
-    }
-  });
-}
+/// `package:<package_name>`
+String getPackageNameFromSrc(String str) => new RegExp(packageNameRegExPattern).firstMatch(str)?.group(1) ?? null;
 
-String getPackageNameFromSrc(SourceSpan span) {
-  final spanStr = span.text;
-  Match packageMatch = new RegExp(packageNameRegExPattern).firstMatch(spanStr);
-  Match looseFileMatch = new RegExp(looseFileRegExPattern).firstMatch(spanStr);
-  Match dartLibMatch = new RegExp(dartLibNameRegExPattern).firstMatch(spanStr);
+String getAnyPackageNameFromSrc(String str) {
+  final name = getPackageNameFromSrc(str) ?? getLooseFilePackageNameFromSrc(str) ?? getDartLibraryNameFromSrc(str);
 
-  if (packageMatch ?? looseFileMatch ?? dartLibMatch == null) {
-    throw new ArgumentError('''The `SourceSpan` provided did not contain a dart package, dart core library, or `file:///` name:
-      $spanStr
+  if (name == null) {
+    throw new ArgumentError('''The string provided did not contain a dart package, dart core library, or `file:///` name:
+      $str
     ''');
   }
 
-  if (packageMatch != null) {
-    return packageMatch.group(1);
-  } else if (looseFileMatch != null) {
-    return looseFileMatch.group(1);
-  } else {
-    return dartLibMatch.group(0);
-  }
+  return name;
 }
 
 String getPackageLibraryNameFromSrc(String str) {
@@ -107,28 +95,37 @@ int getDartLibrarySizeInBytesFromSrc(String str) {
   return int.parse(packageMatch.group(3));
 }
 
-int getPackageSizeInBytesFromSrc(String packageName) {
-  var sizeInfoSrc = librarySizeSplitOutputSrc ?? new File(librarySizeSplitOutput).readAsLinesSync();
+List<String> getEntitySizeListSrc(String dart2JsInfoOutputDir) {
+  final dart2JsInfoLibSizeSplitOutFile = new File('$dart2JsInfoOutputDir/$dart2JsInfoLibSizeSplitOutFileName');
 
-  if (packageSizeInfo.isEmpty) {
-    sizeInfoSrc.forEach((line) {
-      Match packageMatch = new RegExp(packageSizeRegExPattern).firstMatch(line);
+  return dart2JsInfoLibSizeSplitOutFile.readAsLinesSync();
+}
 
-      if (packageMatch != null) {
-        var _packageName = packageMatch.group(1);
+Map<String/*entity name*/, int/*size (in bytes)*/> getEntitySizeMap(List<String> entitySizeListSrc) {
+  var entitySizeMap = <String, int>{};
 
-        if (_packageName.isNotEmpty) {
-          var packageSize = int.parse(packageMatch.group(2));
+  entitySizeListSrc.forEach((line) {
+    final looseFileName = getLooseFilePackageNameFromSrc(line);
+    final libraryName = getPackageLibraryNameFromSrc(line);
+    final dartLibraryName = getDartLibraryNameFromSrc(line);
+    final packageMatch = new RegExp(packageSizeRegExPattern).firstMatch(line);
 
-          if (packageSize > 0) {
-            packageSizeInfo[_packageName] = packageSize;
-          }
-        }
-      }
-    });
-  }
+    if (packageMatch != null) {
+      final packageName = packageMatch.group(1);
+      final packageSize = int.parse(packageMatch.group(2));
 
-  return packageSizeInfo[packageName] ?? 0;
+      entitySizeMap[packageName] = packageSize;
+    } else if (dartLibraryName != null) {
+      entitySizeMap[libraryName] = getDartLibrarySizeInBytesFromSrc(line) ?? 0;
+    } else if (libraryName != null) {
+      entitySizeMap[libraryName] = getPackageLibrarySizeInBytesFromSrc(line) ?? 0;
+    } else if (looseFileName != null) {
+      // TODO
+      entitySizeMap[looseFileName] = 0;
+    }
+  });
+
+  return entitySizeMap;
 }
 
 const int aKilobyte = 1024;

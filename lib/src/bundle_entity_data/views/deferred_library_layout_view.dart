@@ -9,22 +9,26 @@ class DeferredLibraryLayoutView {
   final String outFile;
   final String outVarName;
   final DeferredLibraryLayoutViewOutputGenerator viewOutputGenerator;
-  final String yamlSrc;
+  final String dart2JsInfoOutputDir;
   final bool showLibraryMembers;
   final List<String> deferredUnitIds;
 
   DeferredLibraryLayoutView({
+      @required
+      this.dart2JsInfoOutputDir,
       @required
       this.outFile,
       @required
       this.outVarName,
       @required
       this.viewOutputGenerator,
-      this.yamlSrc: deferredLibraryLayoutOutput,
       this.showLibraryMembers: false,
       this.deferredUnitIds: const <String>[]
   }) {
-    YamlMap deferredLibraryLayoutSrc = loadYaml(new File(this.yamlSrc).readAsStringSync());
+    final dart2JsInfoDeferredLibLayoutOutFile = new File('${this.dart2JsInfoOutputDir}/$dart2JsInfoDeferredLibLayoutOutFileName');
+    this._entitySizeMap = getEntitySizeMap(getEntitySizeListSrc(this.dart2JsInfoOutputDir));
+
+    YamlMap deferredLibraryLayoutSrc = loadYaml(dart2JsInfoDeferredLibLayoutOutFile.readAsStringSync());
 
     this._parts = <DeferredPartData>[];
 
@@ -56,24 +60,29 @@ class DeferredLibraryLayoutView {
         }
       });
 
-      this._parts.add(new DeferredPartData(partName, loadedBy: loadedBy, contains: contains));
+      this._parts.add(new DeferredPartData(partName,
+          dart2JsInfoOutputDir: this.dart2JsInfoOutputDir,
+          entitySizeMap: this.entitySizeMap,
+          loadedBy: loadedBy,
+          contains: contains,
+      ));
     });
   }
 
   /// In this view, the first layer of data in the [toFile]d map will be keyed by [PackageData.name],
   /// then by [DeferredPartData.name] in the second layer.
   factory DeferredLibraryLayoutView.groupByPackage({
-      String dataFilesPath: dart2jsInfoOutputPath,
-      String yamlFilePath: dart2jsInfoOutputPath,
+      @required String dart2JsInfoOutputDir,
+      @required String dart2JsInfoUtilMapViewDataOutputDir,
       bool showLibraryMembers: false,
       List<String> deferredUnitIds: const <String>[]
   }) {
     return new DeferredLibraryLayoutView(
-        outFile: '$dataFilesPath/$dart2jsInfoParsedOutputDirName/deferred_library_layout__by_package.dart',
+        dart2JsInfoOutputDir: dart2JsInfoOutputDir,
+        outFile: '$dart2JsInfoUtilMapViewDataOutputDir/$dart2JsInfoUtilMapViewByPackageFile',
         outVarName: 'deferredLibraryLayoutByPackage',
         viewOutputGenerator: ((List<DeferredPartData> parts) =>
             _generateGroupByPackageViewData(parts, showLibraryMembers: showLibraryMembers)),
-        yamlSrc: '$dataFilesPath/$deferredLibraryLayoutFileName',
         showLibraryMembers: showLibraryMembers,
         deferredUnitIds: deferredUnitIds,
     );
@@ -82,21 +91,24 @@ class DeferredLibraryLayoutView {
   /// In this view, the first layer of data in the [toFile]d map will be keyed by [DeferredPartData.name],
   /// then by [PackageData.name] in the second layer.
   factory DeferredLibraryLayoutView.groupByPart({
-      String dataFilesPath: dart2jsInfoOutputPath,
-      String yamlFilePath: dart2jsInfoOutputPath,
+      @required String dart2JsInfoOutputDir,
+      @required String dart2JsInfoUtilMapViewDataOutputDir,
       bool showLibraryMembers: false,
       List<String> deferredUnitIds: const <String>[]
   }) {
     return new DeferredLibraryLayoutView(
-        outFile: '$dataFilesPath/$dart2jsInfoParsedOutputDirName/deferred_library_layout__by_part.dart',
+        dart2JsInfoOutputDir: dart2JsInfoOutputDir,
+        outFile: '$dart2JsInfoUtilMapViewDataOutputDir/$dart2JsInfoUtilMapViewByPartFile',
         outVarName: 'deferredLibraryLayoutByPart',
         viewOutputGenerator: ((List<DeferredPartData> parts) =>
             _generateGroupByPartViewData(parts, showLibraryMembers: showLibraryMembers)),
-        yamlSrc: '$dataFilesPath/$deferredLibraryLayoutFileName',
         showLibraryMembers: showLibraryMembers,
         deferredUnitIds: deferredUnitIds,
     );
   }
+
+  Map<String/*entity name*/, int/*entity size (in bytes)*/> get entitySizeMap => _entitySizeMap;
+  Map<String, int> _entitySizeMap;
 
   List<DeferredPartData> get parts => _parts;
   List<DeferredPartData> _parts;
@@ -113,9 +125,11 @@ class DeferredLibraryLayoutView {
         };
 
         if (viewMap[packageName] == null) {
+          print('${packageData.name}: ${packageData.entitySizeMap[packageData.name]}');
+
           viewMap[packageName] = {
             'name': packageData.name,
-            'size': getPackageSizeInBytesFromSrc(packageData.name),
+            'size': packageData.entitySizeMap[packageData.name] ?? 0,
             'parts': new SplayTreeMap.from(groupedData),
           };
         } else {
