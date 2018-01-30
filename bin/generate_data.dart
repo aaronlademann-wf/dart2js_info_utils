@@ -105,7 +105,12 @@ class Dart2JsInfoUtils {
       file.createSync(recursive: true);
     }
 
-    file.writeAsStringSync(result.stdout);
+    var stdout = result.stdout;
+    if (cmd == 'deferred_library_layout') {
+      stdout = result.stdout.replaceFirst('loaded by default', 'loaded by:');
+    }
+
+    file.writeAsStringSync(stdout);
     print('Successfully ran `dart2js_info_$cmd` and wrote the result to `$outFilePath`.');
   }
 
