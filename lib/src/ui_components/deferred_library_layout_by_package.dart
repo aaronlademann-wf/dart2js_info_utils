@@ -21,8 +21,8 @@ class DeferredLibraryLayoutByPackageUiComponent
   String getTopLevelKeyHeaderText(String topLevelKey) => 'package:$topLevelKey';
 
   @override
-  String getSecondLevelKeyHeaderText(String secondLevelKey) => secondLevelKey == '00_main'
-      ? 'main.dart.js (not deferred)'
+  String getSecondLevelKeyHeaderText(String secondLevelKey) => secondLevelKey.startsWith('00')
+      ? '${secondLevelKey.replaceFirst('00_', '')}.dart.js (not deferred)'
       : 'deferred part $secondLevelKey';
 
   @override

@@ -14,6 +14,7 @@ class DeferredLibraryLayoutView {
   final List<String> deferredUnitIds;
 
   DeferredLibraryLayoutView({
+      @required String jsFileName,
       @required
       this.dart2JsInfoOutputDir,
       @required
@@ -34,9 +35,15 @@ class DeferredLibraryLayoutView {
 
     deferredLibraryLayoutSrc.forEach((String key, YamlMap value) {
       var partName = key.replaceAll('Output unit ', '');
-      if (partName == 'main') {
-        partName = '00_main';
-      } else if (int.parse(partName) is num) {
+
+      var isNonDeferredPart = false;
+      int.parse(partName, onError: (_) {
+        isNonDeferredPart = true;
+      });
+
+      if (isNonDeferredPart) {
+        partName = '00_$jsFileName';
+      } else {
         final partNum = int.parse(partName);
         if (partNum < 10) {
           partName = '0$partNum';
@@ -72,12 +79,14 @@ class DeferredLibraryLayoutView {
   /// In this view, the first layer of data in the [toFile]d map will be keyed by [PackageData.name],
   /// then by [DeferredPartData.name] in the second layer.
   factory DeferredLibraryLayoutView.groupByPackage({
+      @required String jsFileName,
       @required String dart2JsInfoOutputDir,
       @required String dart2JsInfoUtilMapViewDataOutputDir,
       bool showLibraryMembers: false,
       List<String> deferredUnitIds: const <String>[]
   }) {
     return new DeferredLibraryLayoutView(
+        jsFileName: jsFileName,
         dart2JsInfoOutputDir: dart2JsInfoOutputDir,
         outFile: '$dart2JsInfoUtilMapViewDataOutputDir/$dart2JsInfoUtilMapViewByPackageFile',
         outVarName: 'deferredLibraryLayoutByPackage',
@@ -91,12 +100,14 @@ class DeferredLibraryLayoutView {
   /// In this view, the first layer of data in the [toFile]d map will be keyed by [DeferredPartData.name],
   /// then by [PackageData.name] in the second layer.
   factory DeferredLibraryLayoutView.groupByPart({
+      @required String jsFileName,
       @required String dart2JsInfoOutputDir,
       @required String dart2JsInfoUtilMapViewDataOutputDir,
       bool showLibraryMembers: false,
       List<String> deferredUnitIds: const <String>[]
   }) {
     return new DeferredLibraryLayoutView(
+        jsFileName: jsFileName,
         dart2JsInfoOutputDir: dart2JsInfoOutputDir,
         outFile: '$dart2JsInfoUtilMapViewDataOutputDir/$dart2JsInfoUtilMapViewByPartFile',
         outVarName: 'deferredLibraryLayoutByPart',

@@ -18,8 +18,8 @@ class DeferredLibraryLayoutByPartUiComponent
     extends AbstractDeferredLibraryLayoutViewUiComponent<DeferredLibraryLayoutByPartUiProps,
                                                          DeferredLibraryLayoutByPartUiState> {
   @override
-  String getTopLevelKeyHeaderText(String topLevelKey) => topLevelKey == '00_main'
-      ? 'main.dart.js (not deferred)'
+  String getTopLevelKeyHeaderText(String topLevelKey) => topLevelKey.startsWith('00')
+      ? '${topLevelKey.replaceFirst('00_', '')}.dart.js (not deferred)'
       : 'deferred part $topLevelKey';
 
   @override
