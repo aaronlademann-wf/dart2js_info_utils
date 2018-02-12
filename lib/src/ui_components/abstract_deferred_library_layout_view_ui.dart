@@ -124,6 +124,7 @@ abstract class AbstractDeferredLibraryLayoutViewUiComponent<T extends AbstractDe
 
   Map<String, Map<String, PackageLibDataMapView>> _packageLibsViewSortedBySizeAscendingCache;
   Map<String, PackageLibDataMapView> _getPackageLibsViewSortedBySizeAscending(PackageDataMapView packageData) {
+    _packageLibsViewSortedBySizeAscendingCache = null;
     final deferredPartName = packageData.libraries.values.first.deferredPartName;
 
     if (_packageLibsViewSortedBySizeAscendingCache == null) {
@@ -139,6 +140,7 @@ abstract class AbstractDeferredLibraryLayoutViewUiComponent<T extends AbstractDe
 
   Map<String, Map<String, PackageLibDataMapView>> _packageLibsViewSortedBySizeDescendingCache;
   Map<String, PackageLibDataMapView> _getPackageLibsViewSortedBySizeDescending(PackageDataMapView packageData) {
+    _packageLibsViewSortedBySizeDescendingCache = null;
     final deferredPartName = packageData.libraries.values.first.deferredPartName;
 
     if (_packageLibsViewSortedBySizeDescendingCache == null) {
@@ -160,16 +162,18 @@ abstract class AbstractDeferredLibraryLayoutViewUiComponent<T extends AbstractDe
 
   covariant Map<String, DataEntityMapView> _topLevelEntityViewSortedBySizeAscendingCache;
   Map<String, DataEntityMapView> _getTopLevelEntityViewSortedBySizeAscending() {
-    _topLevelEntityViewSortedBySizeAscendingCache ??= props.data.sortedBySize(ascending: true);
-
-    return _topLevelEntityViewSortedBySizeAscendingCache;
+    return props.data.sortedBySize(ascending: true);
+//    _topLevelEntityViewSortedBySizeAscendingCache ??= props.data.sortedBySize(ascending: true);
+//
+//    return _topLevelEntityViewSortedBySizeAscendingCache;
   }
 
   covariant Map<String, DataEntityMapView> _topLevelEntityViewSortedBySizeDescendingCache;
   Map<String, DataEntityMapView> _getTopLevelEntityViewSortedBySizeDescending() {
-    _topLevelEntityViewSortedBySizeDescendingCache ??= props.data.sortedBySize(ascending: false);
-
-    return _topLevelEntityViewSortedBySizeDescendingCache;
+    return props.data.sortedBySize(ascending: false);
+//    _topLevelEntityViewSortedBySizeDescendingCache ??= props.data.sortedBySize(ascending: false);
+//
+//    return _topLevelEntityViewSortedBySizeDescendingCache;
   }
 
   Map<DeferredLibraryLayoutViewSortOptions, Map<String, DataEntityMapView>> get topLevelEntityView;

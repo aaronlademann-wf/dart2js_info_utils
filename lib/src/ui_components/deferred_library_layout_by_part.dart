@@ -95,6 +95,8 @@ class DeferredLibraryLayoutByPartUiComponent
 
   Map<String, Map<String, PackageDataMapView>> _partPackagesViewSortedBySizeAscendingCache;
   Map<String, PackageDataMapView> _getPartPackagesViewSortedBySizeAscending(DeferredPartDataMapView partData) {
+    _partPackagesViewSortedBySizeAscendingCache = null;
+
     if (_partPackagesViewSortedBySizeAscendingCache == null) {
       _partPackagesViewSortedBySizeAscendingCache = {
         partData.name: props.data.parts[partData.name].sortedBySize(ascending: true)
@@ -109,6 +111,8 @@ class DeferredLibraryLayoutByPartUiComponent
 
   Map<String, Map<String, PackageDataMapView>> _partPackagesViewSortedBySizeDescendingCache;
   Map<String, PackageDataMapView> _getPartPackagesViewSortedBySizeDescending(DeferredPartDataMapView partData) {
+    _partPackagesViewSortedBySizeDescendingCache == null;
+
     if (_partPackagesViewSortedBySizeDescendingCache == null) {
       _partPackagesViewSortedBySizeDescendingCache = {
         partData.name: props.data.parts[partData.name].sortedBySize(ascending: false)
@@ -131,18 +135,20 @@ class DeferredLibraryLayoutByPartUiComponent
   Map<String, DeferredPartDataMapView> _topLevelEntityViewSortedBySizeAscendingCache;
   @override
   Map<String, DeferredPartDataMapView> _getTopLevelEntityViewSortedBySizeAscending() {
-    _topLevelEntityViewSortedBySizeAscendingCache ??= props.data.sortedBySize(ascending: true);
-
-    return _topLevelEntityViewSortedBySizeAscendingCache;
+    return props.data.sortedBySize(ascending: true);
+//    _topLevelEntityViewSortedBySizeAscendingCache ??= props.data.sortedBySize(ascending: true);
+//
+//    return _topLevelEntityViewSortedBySizeAscendingCache;
   }
 
   @override
   Map<String, DeferredPartDataMapView> _topLevelEntityViewSortedBySizeDescendingCache;
   @override
   Map<String, DeferredPartDataMapView> _getTopLevelEntityViewSortedBySizeDescending() {
-    _topLevelEntityViewSortedBySizeDescendingCache ??= props.data.sortedBySize(ascending: false);
-
-    return _topLevelEntityViewSortedBySizeDescendingCache;
+    return props.data.sortedBySize(ascending: false);;
+//    _topLevelEntityViewSortedBySizeDescendingCache ??= props.data.sortedBySize(ascending: false);
+//
+//    return _topLevelEntityViewSortedBySizeDescendingCache;
   }
 
   @override
