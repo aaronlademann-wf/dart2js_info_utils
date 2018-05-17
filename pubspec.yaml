@@ -8,7 +8,7 @@ environment:
   sdk: '>=1.24.1 <2.0.0'
 
 dependencies:
-  args: ^0.13.5
+  args: ">=0.13.5 <2.0.0"
   bootstrap: ^4.0.0
   meta: ^1.0.0
   over_react: ^1.20.0
@@ -18,7 +18,7 @@ dependencies:
       ref: master
 
 dev_dependencies:
-  coverage: ^0.8.0
+  coverage: ">=0.8.0 <0.11.0"
   dart_dev: ^1.7.8
   dart_style: ^1.0.7
   over_react_format:
@@ -26,7 +26,7 @@ dev_dependencies:
       name: over_react_format
       url: https://pub.workiva.org
     version: ^1.0.1
-  test: ^0.12.24
+  test: ^0.12.32+1
 
 transformers:
   - over_react
