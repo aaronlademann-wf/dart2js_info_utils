@@ -5,11 +5,8 @@ library wdesk.benchmark.dart2js_info.bundle_entity_data;
 
 import 'dart:collection';
 import 'dart:convert';
-import 'dart:developer';
-import 'dart:io';
 
 import 'package:meta/meta.dart';
-import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
 part 'package:dart2js_info_utils/src/bundle_entity_data/abstract_entity_data.dart';
@@ -25,7 +22,7 @@ const String dart2JsInfoUtilMapViewByPackageFile = 'deferred_library_layout__by_
 const String dart2JsInfoUtilMapViewByPartFile = 'deferred_library_layout__by_part.dart';
 
 const String dart2jsInfoPath = './benchmark/dart2js_info';
-const String dart2JsInfoOutputSubDir = 'data';
+const String dart2JsInfoOutputSubDir = 'lib/src/data';
 const String dart2JsInfoUtilMapViewDataOutputSubDir = 'mapped';
 
 const String packageNameRegExPattern = r'(?:package:)(\w(\w|\d)*)(?=\/)(.*)(?:\.dart)';
@@ -93,12 +90,6 @@ int getDartLibrarySizeInBytesFromSrc(String str) {
   }
 
   return int.parse(packageMatch.group(3));
-}
-
-List<String> getEntitySizeListSrc(String dart2JsInfoOutputDir) {
-  final dart2JsInfoLibSizeSplitOutFile = new File('$dart2JsInfoOutputDir/$dart2JsInfoLibSizeSplitOutFileName');
-
-  return dart2JsInfoLibSizeSplitOutFile.readAsLinesSync();
 }
 
 Map<String/*entity name*/, int/*size (in bytes)*/> getEntitySizeMap(List<String> entitySizeListSrc) {

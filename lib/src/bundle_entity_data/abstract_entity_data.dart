@@ -12,10 +12,9 @@ abstract class BundleEntityData/*<T> implements Comparable<T>*/ {
   BundleEntityData(this.name, {
       @required
       this.dart2JsInfoOutputDir,
+      @required
       Map<String, int> entitySizeMap,
-  }) {
-    this._entitySizeMap = entitySizeMap ?? getEntitySizeMap(getEntitySizeListSrc(this.dart2JsInfoOutputDir));
-  }
+  }) : _entitySizeMap = entitySizeMap;
 
   Map<String/*entity name*/, int/*entity size (in bytes)*/> get entitySizeMap => _entitySizeMap;
   Map<String, int> _entitySizeMap;
@@ -27,7 +26,7 @@ abstract class BundleEntityData/*<T> implements Comparable<T>*/ {
 
   Map<String, dynamic> toMap({bool showLibraryMembers: false});
 
-  String toJSON({bool showLibraryMembers: false}) => JSON.encode(toMap(showLibraryMembers: showLibraryMembers));
+  String toJSON({bool showLibraryMembers: false}) => json.encode(toMap(showLibraryMembers: showLibraryMembers));
 
   @override
   String toString({bool showLibraryMembers: false}) => toJSON(showLibraryMembers: showLibraryMembers);

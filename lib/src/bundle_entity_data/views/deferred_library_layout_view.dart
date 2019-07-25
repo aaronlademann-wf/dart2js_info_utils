@@ -23,23 +23,30 @@ class DeferredLibraryLayoutView {
       this.outVarName,
       @required
       this.viewOutputGenerator,
+      @required
+      List<String> entitySizeListSrc,
+      @required
+      YamlDocument deferredLibraryLayoutSrc,
       this.showLibraryMembers: false,
       this.deferredUnitIds: const <String>[]
   }) {
-    final dart2JsInfoDeferredLibLayoutOutFile = new File('${this.dart2JsInfoOutputDir}/$dart2JsInfoDeferredLibLayoutOutFileName');
-    this._entitySizeMap = getEntitySizeMap(getEntitySizeListSrc(this.dart2JsInfoOutputDir));
+//    final dart2JsInfoDeferredLibLayoutOutFile = new File('${this.dart2JsInfoOutputDir}/$dart2JsInfoDeferredLibLayoutOutFileName');
+    this._entitySizeMap = getEntitySizeMap(entitySizeListSrc);
 
-    YamlMap deferredLibraryLayoutSrc = loadYaml(dart2JsInfoDeferredLibLayoutOutFile.readAsStringSync());
+//    YamlDocument deferredLibraryLayoutSrc = loadYaml(dart2JsInfoDeferredLibLayoutOutFile.readAsStringSync());
 
     this._parts = <DeferredPartData>[];
 
-    deferredLibraryLayoutSrc.forEach((String key, YamlMap value) {
+    // ignore: avoid_as
+    final contents = deferredLibraryLayoutSrc.contents as YamlMap;
+
+    contents.forEach((key, value) {
       var partName = key.replaceAll('Output unit ', '');
 
       var isNonDeferredPart = false;
-      int.parse(partName, onError: (_) {
+      if (int.tryParse(partName) == null) {
         isNonDeferredPart = true;
-      });
+      }
 
       if (isNonDeferredPart) {
         partName = '00_$jsFileName';
@@ -57,7 +64,7 @@ class DeferredLibraryLayoutView {
       YamlList loadedBy;
       YamlList contains;
 
-      value.forEach((String key, YamlList value) {
+      value.forEach((key,  value) {
         if (key.contains('loaded by')) {
           loadedBy = value;
         }
@@ -82,6 +89,8 @@ class DeferredLibraryLayoutView {
       @required String jsFileName,
       @required String dart2JsInfoOutputDir,
       @required String dart2JsInfoUtilMapViewDataOutputDir,
+      @required List<String> entitySizeListSrc,
+      @required YamlDocument deferredLibraryLayoutSrc,
       bool showLibraryMembers: false,
       List<String> deferredUnitIds: const <String>[]
   }) {
@@ -90,6 +99,8 @@ class DeferredLibraryLayoutView {
         dart2JsInfoOutputDir: dart2JsInfoOutputDir,
         outFile: '$dart2JsInfoUtilMapViewDataOutputDir/$dart2JsInfoUtilMapViewByPackageFile',
         outVarName: 'deferredLibraryLayoutByPackage',
+        entitySizeListSrc: entitySizeListSrc,
+        deferredLibraryLayoutSrc: deferredLibraryLayoutSrc,
         viewOutputGenerator: ((List<DeferredPartData> parts) =>
             _generateGroupByPackageViewData(parts, showLibraryMembers: showLibraryMembers)),
         showLibraryMembers: showLibraryMembers,
@@ -103,6 +114,8 @@ class DeferredLibraryLayoutView {
       @required String jsFileName,
       @required String dart2JsInfoOutputDir,
       @required String dart2JsInfoUtilMapViewDataOutputDir,
+      @required List<String> entitySizeListSrc,
+      @required YamlDocument deferredLibraryLayoutSrc,
       bool showLibraryMembers: false,
       List<String> deferredUnitIds: const <String>[]
   }) {
@@ -111,6 +124,8 @@ class DeferredLibraryLayoutView {
         dart2JsInfoOutputDir: dart2JsInfoOutputDir,
         outFile: '$dart2JsInfoUtilMapViewDataOutputDir/$dart2JsInfoUtilMapViewByPartFile',
         outVarName: 'deferredLibraryLayoutByPart',
+        entitySizeListSrc: entitySizeListSrc,
+        deferredLibraryLayoutSrc: deferredLibraryLayoutSrc,
         viewOutputGenerator: ((List<DeferredPartData> parts) =>
             _generateGroupByPartViewData(parts, showLibraryMembers: showLibraryMembers)),
         showLibraryMembers: showLibraryMembers,
@@ -138,11 +153,11 @@ class DeferredLibraryLayoutView {
         if (viewMap[packageName] == null) {
           print('${packageData.name}: ${packageData.entitySizeMap[packageData.name]}');
 
-          viewMap[packageName] = {
+          viewMap[packageName] = new SplayTreeMap.from({
             'name': packageData.name,
             'size': packageData.entitySizeMap[packageData.name] ?? 0,
-            'parts': new SplayTreeMap.from(groupedData),
-          };
+            'parts': new SplayTreeMap<String, dynamic>.from(groupedData),
+          });
         } else {
           viewMap[packageName]['name'] = packageData.name;
           (viewMap[packageName]['parts'] as SplayTreeMap).addAll(groupedData); // ignore: avoid_as
@@ -176,32 +191,24 @@ class DeferredLibraryLayoutView {
     return _mapCache;
   }
 
-  String toJSON() => JSON.encode(toMap());
+  String toJSON() => json.encode(toMap());
 
   @override
   String toString() => toJSON();
 
-  void toFile() {
-    var file = new File(this.outFile);
-
-    if (!file.existsSync()) {
-      file.createSync(recursive: true);
-    }
-
-    file.writeAsStringSync('var ${this.outVarName} = ${this.toJSON()};');
-  }
+  String toFileString() => 'var ${this.outVarName} = ${this.toJSON()};';
 }
 
 /// Provides a typed view for a `Map` generated by
 /// [DeferredLibraryLayoutView.groupByPackage] or [DeferredLibraryLayoutView.groupByPart].
-abstract class DeferredLibraryLayoutMapView extends MapView {
+abstract class DeferredLibraryLayoutMapView<T extends MapView> extends MapView {
   DeferredLibraryLayoutMapView(Map map) : super(map);
 
-  Map<String, DataEntityMapView> sortedBySize({bool ascending: false});
+  Map<String, T> sortedBySize({bool ascending: false});
 }
 
 /// Map view shared between [DeferredPartDataMapView], [PackagePartsMapView] and [PackageDataMapView].
-abstract class DataEntityMapView extends DeferredLibraryLayoutMapView {
+abstract class DataEntityMapView<T extends DeferredLibraryLayoutMapView> extends DeferredLibraryLayoutMapView<T> {
   DataEntityMapView(Map map) : super(map);
 
   String get name;
@@ -212,7 +219,7 @@ abstract class DataEntityMapView extends DeferredLibraryLayoutMapView {
 ///
 /// Useful when you want information about [PackageData] / [PackageLibData]
 /// no matter which [DeferredPartData] instance they are found within.
-class DeferredLibraryLayoutByPackageMapView extends DeferredLibraryLayoutMapView {
+class DeferredLibraryLayoutByPackageMapView extends DeferredLibraryLayoutMapView<PackagePartsMapView> {
   DeferredLibraryLayoutByPackageMapView(Map map) : super(map);
 
   Map<String, PackagePartsMapView> get packages {
@@ -247,7 +254,7 @@ class DeferredLibraryLayoutByPackageMapView extends DeferredLibraryLayoutMapView
 }
 
 /// A map view for a single package within [DeferredLibraryLayoutByPackageMapView.packages].
-class PackagePartsMapView extends DataEntityMapView {
+class PackagePartsMapView extends DataEntityMapView<PackageDataMapView> {
   PackagePartsMapView(Map map) : super(map);
 
   @override
@@ -293,7 +300,7 @@ class PackagePartsMapView extends DataEntityMapView {
 ///
 /// Useful when you want information about [DeferredPartData], or about individual [PackageData] / [PackageLibData]
 /// that are found within that part.
-class DeferredLibraryLayoutByPartMapView extends DeferredLibraryLayoutMapView {
+class DeferredLibraryLayoutByPartMapView extends DeferredLibraryLayoutMapView<DeferredPartDataMapView> {
   DeferredLibraryLayoutByPartMapView(Map map) : super(map);
 
   Map<String, DeferredPartDataMapView> get parts {
@@ -326,3 +333,4 @@ class DeferredLibraryLayoutByPartMapView extends DeferredLibraryLayoutMapView {
     return tDeferredPartData;
   }
 }
+

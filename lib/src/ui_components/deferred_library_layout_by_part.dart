@@ -1,17 +1,17 @@
 part of wdesk.benchmark.dart2js_info.ui_components;
 
 @Factory()
-UiFactory<DeferredLibraryLayoutByPartUiProps> DeferredLibraryLayoutByPartUi;
+UiFactory<DeferredLibraryLayoutByPartUiProps> DeferredLibraryLayoutByPartUi = _$DeferredLibraryLayoutByPartUi;
 
 @Props()
-class DeferredLibraryLayoutByPartUiProps extends AbstractDeferredLibraryLayoutViewUiProps {
+class _$DeferredLibraryLayoutByPartUiProps extends AbstractDeferredLibraryLayoutViewUiProps {
   @requiredProp
   @override
   DeferredLibraryLayoutByPartMapView data;
 }
 
 @State()
-class DeferredLibraryLayoutByPartUiState extends AbstractDeferredLibraryLayoutViewUiState {}
+class _$DeferredLibraryLayoutByPartUiState extends AbstractDeferredLibraryLayoutViewUiState {}
 
 @Component()
 class DeferredLibraryLayoutByPartUiComponent
@@ -145,7 +145,7 @@ class DeferredLibraryLayoutByPartUiComponent
   Map<String, DeferredPartDataMapView> _topLevelEntityViewSortedBySizeDescendingCache;
   @override
   Map<String, DeferredPartDataMapView> _getTopLevelEntityViewSortedBySizeDescending() {
-    return props.data.sortedBySize(ascending: false);;
+    return props.data.sortedBySize(ascending: false);
 //    _topLevelEntityViewSortedBySizeDescendingCache ??= props.data.sortedBySize(ascending: false);
 //
 //    return _topLevelEntityViewSortedBySizeDescendingCache;

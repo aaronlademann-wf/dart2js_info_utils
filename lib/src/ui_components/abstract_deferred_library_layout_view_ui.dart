@@ -3,7 +3,7 @@ part of wdesk.benchmark.dart2js_info.ui_components;
 typedef Map<String, int> AggregatePackageSizeDataCallback();
 
 @AbstractProps()
-abstract class AbstractDeferredLibraryLayoutViewUiProps extends UiProps {
+abstract class _$AbstractDeferredLibraryLayoutViewUiProps extends UiProps {
   @requiredProp
   covariant DeferredLibraryLayoutMapView data;
 
@@ -14,7 +14,7 @@ abstract class AbstractDeferredLibraryLayoutViewUiProps extends UiProps {
 }
 
 @AbstractState()
-abstract class AbstractDeferredLibraryLayoutViewUiState extends UiState {}
+abstract class _$AbstractDeferredLibraryLayoutViewUiState extends UiState {}
 
 @AbstractComponent()
 abstract class AbstractDeferredLibraryLayoutViewUiComponent<T extends AbstractDeferredLibraryLayoutViewUiProps,

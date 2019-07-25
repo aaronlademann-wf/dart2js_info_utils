@@ -42,7 +42,7 @@ class PackageLibData extends BundleEntityData {
     Map<String, dynamic> deSerializedData;
 
     if (serializedData is String) {
-      deSerializedData = JSON.decode(serializedData);
+      deSerializedData = json.decode(serializedData);
     } else {
       deSerializedData = serializedData;
     }
@@ -63,7 +63,7 @@ class PackageLibData extends BundleEntityData {
 
     var members = <String>[];
 
-    void _addMember(String nodeValue) {
+    void _addMember(nodeValue) {
 //      nodeValue = nodeValue.substring(1, nodeValue.length - 1);
       int dollarLocation = nodeValue.indexOf('\$');
 
@@ -78,6 +78,7 @@ class PackageLibData extends BundleEntityData {
       node.nodes.values.forEach((node) {
         if (node.value is YamlList) {
           YamlList value = node.value;
+          // ignore: avoid_as
           value.forEach(_addMember);
         } else {
           _addMember(node.value);
@@ -96,7 +97,7 @@ class PackageLibData extends BundleEntityData {
     'deferredPartName': deferredPartName,
     'size': size,
     'members': showLibraryMembers
-        ? members : [],
+        ? members : <String>[],
   };
 }
 

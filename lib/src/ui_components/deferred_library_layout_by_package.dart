@@ -1,17 +1,17 @@
 part of wdesk.benchmark.dart2js_info.ui_components;
 
 @Factory()
-UiFactory<DeferredLibraryLayoutByPackageUiProps> DeferredLibraryLayoutByPackageUi;
+UiFactory<DeferredLibraryLayoutByPackageUiProps> DeferredLibraryLayoutByPackageUi = _$DeferredLibraryLayoutByPackageUi;
 
 @Props()
-class DeferredLibraryLayoutByPackageUiProps extends AbstractDeferredLibraryLayoutViewUiProps {
+class _$DeferredLibraryLayoutByPackageUiProps extends AbstractDeferredLibraryLayoutViewUiProps {
   @requiredProp
   @override
   DeferredLibraryLayoutByPackageMapView data;
 }
 
 @State()
-class DeferredLibraryLayoutByPackageUiState extends AbstractDeferredLibraryLayoutViewUiState {}
+class _$DeferredLibraryLayoutByPackageUiState extends AbstractDeferredLibraryLayoutViewUiState {}
 
 @Component()
 class DeferredLibraryLayoutByPackageUiComponent

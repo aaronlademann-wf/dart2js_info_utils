@@ -48,7 +48,7 @@ class DeferredPartData extends BundleEntityData {
   }
 
   factory DeferredPartData.fromJSON(String serializedData) {
-    Map<String, dynamic> deSerializedData = JSON.decode(serializedData);
+    Map<String, dynamic> deSerializedData = json.decode(serializedData);
     return new DeferredPartData(deSerializedData['name'],
         dart2JsInfoOutputDir: deSerializedData['dart2JsInfoOutputDir'],
         loadedBy: deSerializedData['loadedBy'],
@@ -62,7 +62,7 @@ class DeferredPartData extends BundleEntityData {
   SplayTreeMap<String, PackageData> _packageData;
 
   Map<String, dynamic> getSerializablePackageData({bool serialize: true, bool showLibraryMembers: false}) {
-    var serializableData = <String, String>{};
+    var serializableData = <String, dynamic>{};
     this.packageData.forEach((packageName, packageData) {
       serializableData[packageName] = serialize
           ? packageData.toJSON(showLibraryMembers: showLibraryMembers)
@@ -93,7 +93,7 @@ class DeferredPartData extends BundleEntityData {
   };
 
   @override
-  String toJSON({bool showLibraryMembers: false}) => JSON.encode({
+  String toJSON({bool showLibraryMembers: false}) => json.encode({
     'name': name,
     'dart2JsInfoOutputDir': dart2JsInfoOutputDir,
     'loadedBy': loadedBy,
@@ -103,7 +103,7 @@ class DeferredPartData extends BundleEntityData {
   });
 }
 
-class DeferredPartDataMapView extends DataEntityMapView {
+class DeferredPartDataMapView extends DataEntityMapView<PackageDataMapView> {
   DeferredPartDataMapView(Map map) : super(map);
 
   @override

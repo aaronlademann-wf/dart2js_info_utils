@@ -1,6 +1,5 @@
 library wdesk.benchmark.dart2js_info.ui_components;
 
-import 'dart:developer';
 import 'dart:html';
 
 import 'package:dart2js_info_utils/data.dart';
@@ -12,3 +11,4 @@ part 'package:dart2js_info_utils/src/ui_components/abstract_deferred_library_lay
 part 'package:dart2js_info_utils/src/ui_components/deferred_library_layout_data_list.dart';
 part 'package:dart2js_info_utils/src/ui_components/deferred_library_layout_by_part.dart';
 part 'package:dart2js_info_utils/src/ui_components/deferred_library_layout_by_package.dart';
+part 'ui_components.over_react.g.dart';

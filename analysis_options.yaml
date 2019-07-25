@@ -1,5 +1,14 @@
 analyzer:
-  strong-mode: true
+  errors:
+    strict_raw_type_in_is: warning
+    strict_raw_type: warning
+    inference_failure_on_instance_creation: warning
+  language:
+    strict-inference: true
+    strict-raw-types: false
+  strong-mode:
+    implicit-casts: true
+    implicit-dynamic: true
 linter:
   rules:
     - annotate_overrides
@@ -19,8 +28,6 @@ linter:
     - package_prefixed_library_names
     - prefer_is_not_empty
     - slash_for_doc_comments
-    - sort_constructors_first
     - sort_unnamed_constructors_first
     - type_init_formals
-    - unnecessary_brace_in_string_interp
     - unnecessary_getters_setters

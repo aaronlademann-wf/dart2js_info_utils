@@ -1,40 +1,29 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansicolor/ansicolor.dart';
 import 'package:args/args.dart';
 import 'package:dart2js_info_utils/data.dart';
 import 'package:meta/meta.dart';
+import 'package:pub_semver/pub_semver.dart';
+import 'package:yaml/yaml.dart';
 
-const String packageName = 'dart2js_info_utils';
-const String dart2jsInfoOutputPathArg = 'output-path';
-const String dart2jsInfoJsFileArg = 'js-file';
-const String dart2jsInfoBuildFlag = 'build';
+const String dart2jsInfoDartEntrypointArg = 'built-dir';
+const String dart2jsInfoMinifyDart2JsOutputFlag = 'minify';
 const String dart2jsInfoGenerateFlag = 'regenerate';
-const String dart2jsInfoBuildModeArg = 'build-mode';
 
 main(List<String> args) async {
   var parser = new ArgParser()
     ..addFlag('help', abbr: 'h', help: 'Print help.')
-    ..addOption(dart2jsInfoOutputPathArg,
-        help: 'The relative path to the place where you want dart2js_info data to live.',
-        defaultsTo: dart2jsInfoPath,
+    ..addOption(dart2jsInfoDartEntrypointArg,
+        help: 'The `.dart` entrypoint file.',
+        defaultsTo: 'web/main.dart',
     )
-    ..addOption(dart2jsInfoJsFileArg,
-        help: 'The relative path to the *.dart.js file that you want information about.',
-        defaultsTo: 'build/web/main.dart.js',
-    )
-    ..addOption(dart2jsInfoBuildModeArg,
-        help: 'When `--$dart2jsInfoBuildFlag` is true, this will set the value of the `--mode` argument for the `pub build` task.',
-        defaultsTo: 'release',
-        allowed: ['release', 'debug'],
-    )
-    ..addFlag(dart2jsInfoGenerateFlag,
-        help: 'Whether you want to regenerate the dart2js_info data. Will happen no matter what if --${dart2jsInfoBuildFlag} is true.',
-        defaultsTo: false,
-    )
-    ..addFlag(dart2jsInfoBuildFlag,
-        help: 'Whether a clean `pub build` is necessary.',
-        defaultsTo: false,
+    ..addFlag(dart2jsInfoMinifyDart2JsOutputFlag,
+        help: 'Whether to minify the dart2js output.',
+        negatable: true,
+        defaultsTo: true,
     );
 
   try {
@@ -61,57 +50,65 @@ class Dart2JsInfoUtils {
   Future<Null> initialize() async {
     this._exitCode = 0;
 
-    if (rebuildPackage) await _buildPackage();
-    if (rebuildPackage || regenerateDart2JsInfoData) await _generateDart2JsInfoData();
+    await _buildPackage();
+    await _generateDart2JsInfoData();
 
     _generateDataMapViews();
-    _copyStatics();
+    await _copyStatics();
   }
 
   int get exitCode => _exitCode;
   int _exitCode;
 
-  bool get rebuildPackage => argValues[dart2jsInfoBuildFlag];
   bool get regenerateDart2JsInfoData => argValues[dart2jsInfoGenerateFlag];
-  String get jsFile => argValues[dart2jsInfoJsFileArg];
+  String get packageName {
+    YamlMap pubspec = loadYamlDocument(File('pubspec.yaml').readAsStringSync()).contents;
+    return pubspec['name'];
+  }
+  String get dartEntrypoint => argValues[dart2jsInfoDartEntrypointArg];
+  String get jsFile => '${Directory.current.path}/.dart_tool/build/generated/$packageName/$dartEntrypoint.js';
   String get jsInfoJsonFile => '$jsFile.info.json';
-  String get dart2JsInfoOutputDir => '${argValues[dart2jsInfoOutputPathArg]}/$dart2JsInfoOutputSubDir';
-  String get dart2JsInfoUtilMapViewDataOutputDir => '$dart2JsInfoOutputDir/$dart2JsInfoUtilMapViewDataOutputSubDir';
+  String get dart2JsInfoOutputDir => dart2jsInfoPath;
+  String get dart2JsInfoDataOutputDir => '$dart2JsInfoOutputDir/$dart2JsInfoOutputSubDir';
+  String get dart2JsInfoUtilMapViewDataOutputDir => '$dart2JsInfoDataOutputDir/$dart2JsInfoUtilMapViewDataOutputSubDir';
 
   // ----------------------------------------------------
   //  Helper Methods
   // ----------------------------------------------------
 
-  void _exitCheck([ProcessResult result]) {
-    if (result != null) this._exitCode = result.exitCode;
-
-    if (this.exitCode != 0) {
-      if (stderr != null) {
-        print('ERROR(${this.exitCode}): \n$stderr');
-      }
-      exit(this.exitCode);
-    }
-  }
-
   /// Runs dart2js_info_[cmd] and writes the [ProcessResult.stdout] to a file at [outFilePath].
   Future<Null> _runDart2JsInfoCmd(String cmd, String outFilePath) async {
-    cmd = cmd.replaceFirst('dart2js_info_', '');
-
-    final result = await Process.run('dart2js_info_$cmd', [jsInfoJsonFile]);
-    _exitCheck(result);
-
     var file = new File(outFilePath);
     if (!file.existsSync()) {
       file.createSync(recursive: true);
     }
 
-    var stdout = result.stdout;
-    if (cmd == 'deferred_library_layout') {
-      stdout = result.stdout.replaceFirst('loaded by default', 'loaded by:');
-    }
+    final processArgs = [cmd, jsInfoJsonFile];
+    print('Running `dart2js_info ${processArgs.join(' ')}...');
+    final process = await Process.start('dart2js_info', processArgs);
 
-    file.writeAsStringSync(stdout);
-    print('Successfully ran `dart2js_info_$cmd` and wrote the result to `$outFilePath`.');
+    final stdout = <String>[];
+    final stdoutSub = process.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+      stdout.add(line);
+    });
+    final stderrSub = process.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(print);
+
+    await process.exitCode.then((code) {
+      stdoutSub.cancel();
+      stderrSub.cancel();
+
+      if (code != 0) {
+        exit(code);
+      } else {
+        var stdOutString = stdout.join('\n');
+        if (cmd == 'deferred_layout') {
+          stdOutString = stdOutString.replaceFirst('loaded by default', 'loaded by:');
+        }
+
+        file.writeAsStringSync(stdOutString);
+        print('Successfully ran `dart2js_info $cmd` and wrote the result to `$outFilePath`.');
+      }
+    });
   }
 
   // ----------------------------------------------------
@@ -119,28 +116,28 @@ class Dart2JsInfoUtils {
   // ----------------------------------------------------
 
   Future<Null> _buildPackage() async {
-    print('Building libary... (Grab a Snickers)');
-
-    final result = await Process.run('pub', ['build', '--mode=${argValues[dart2jsInfoBuildModeArg]}']);
-    _exitCheck(result);
-
-    print(result.stdout);
+    final minifyStr = argValues['minify'] ? 'minify' : 'no-minify';
+    final pbrArgs = ['run', 'build_runner', 'build', '--define', 'build_web_compilers|entrypoint=dart2js_args=["--$minifyStr", "--dump-info"]'];
+    print('Running `pub ${pbrArgs.join(' ')}... (Grab a Snickers)');
+    final pbrProcess = await Process.start(
+      'pub',
+      pbrArgs,
+      mode: ProcessStartMode.inheritStdio,
+    );
+    await pbrProcess.exitCode.then((code) {
+      if (code != 0) {
+        exit(code);
+      }
+    });
   }
 
   Future<Null> _generateDart2JsInfoData() async {
-    await _activateDart2JsInfoPackage();
+    await globallyActivatePackage('dart2js_info');
 
     print('Generating information about $jsFile...');
 
-    await _runDart2JsInfoCmd('library_size_split', '$dart2JsInfoOutputDir/$dart2JsInfoLibSizeSplitOutFileName');
-    await _runDart2JsInfoCmd('deferred_library_layout', '$dart2JsInfoOutputDir/$dart2JsInfoDeferredLibLayoutOutFileName');
-  }
-
-  Future<Null> _activateDart2JsInfoPackage() async {
-    final result = await Process.run('pub', ['global', 'activate', 'dart2js_info']);
-    _exitCheck(result);
-
-    print('Successfully activated the dart2js_info package.');
+    await _runDart2JsInfoCmd('library_size', '$dart2JsInfoDataOutputDir/$dart2JsInfoLibSizeSplitOutFileName');
+    await _runDart2JsInfoCmd('deferred_layout', '$dart2JsInfoDataOutputDir/$dart2JsInfoDeferredLibLayoutOutFileName');
   }
 
   /// Constructs [DeferredLibraryLayoutView]s using the data generated by the
@@ -151,71 +148,66 @@ class Dart2JsInfoUtils {
 
     var jsFileName = new RegExp(r'\/(\w+)(?:\.dart\.js)').firstMatch(jsFile).group(1);
 
+    final deferredLibraryLayoutSrc = loadYamlDocument(File('$dart2JsInfoDataOutputDir/$dart2JsInfoDeferredLibLayoutOutFileName').readAsStringSync());
+    final entitySizeListSrc = File('$dart2JsInfoDataOutputDir/$dart2JsInfoLibSizeSplitOutFileName').readAsLinesSync();
+
     try {
-      new DeferredLibraryLayoutView.groupByPackage(
+      final view = new DeferredLibraryLayoutView.groupByPackage(
           jsFileName: jsFileName,
-          dart2JsInfoOutputDir: dart2JsInfoOutputDir,
+          dart2JsInfoOutputDir: dart2JsInfoDataOutputDir,
           dart2JsInfoUtilMapViewDataOutputDir: dart2JsInfoUtilMapViewDataOutputDir,
-      ).toFile();
+          deferredLibraryLayoutSrc: deferredLibraryLayoutSrc,
+          entitySizeListSrc: entitySizeListSrc,
+      );
+      createViewFile(view);
     } catch (err, stackTrace) {
       print(err);
       print(stackTrace);
 
-      this._exitCode = -1;
-      _exitCheck();
+      exit(-1);
     }
 
     try {
-      new DeferredLibraryLayoutView.groupByPart(
+      final view = new DeferredLibraryLayoutView.groupByPart(
           jsFileName: jsFileName,
-          dart2JsInfoOutputDir: dart2JsInfoOutputDir,
+          dart2JsInfoOutputDir: dart2JsInfoDataOutputDir,
           dart2JsInfoUtilMapViewDataOutputDir: dart2JsInfoUtilMapViewDataOutputDir,
-      ).toFile();
+          deferredLibraryLayoutSrc: deferredLibraryLayoutSrc,
+          entitySizeListSrc: entitySizeListSrc,
+      );
+      createViewFile(view);
     } catch (err, stackTrace) {
       print(err);
       print(stackTrace);
 
-      this._exitCode = -1;
-      _exitCheck();
+      exit(-1);
     }
   }
 
-  void _copyStatics() {
+  Future<Null> _copyStatics() async {
     print('Copying Web Interface Static Files...');
     final String sep = Platform.pathSeparator;
 
     var utilsPath = new File('.packages')
         .readAsLinesSync()
-        .firstWhere((line) => line.startsWith(packageName))
+        .firstWhere((line) => line.startsWith('dart2js_info_utils'))
         // Lines are of the form <package>:<path>,
         // "dart2js_info_utils:" so we skip the
         // package name characters to isolate the path.
-        .substring(packageName.length + 1)
+        .substring('dart2js_info_utils'.length + 1)
         // Strip leading protocol
         .replaceFirst('file://', '')
         // Strip trailing path separators
         .replaceFirst(new RegExp('$sep\$'), '');
 
     var pathToStatics = '$utilsPath${sep}src${sep}statics';
-    try {
-      new File('$pathToStatics${sep}main.dart').copySync('${argValues[dart2jsInfoOutputPathArg]}${sep}main.dart');
-    } catch (err, stackTrace) {
-      print(err);
-      print(stackTrace);
+    final copyStaticsProcess = await Process.start('cp', ['-r', '$pathToStatics/.', '$dart2JsInfoOutputDir/'], mode: ProcessStartMode.inheritStdio);
 
-      this._exitCode = -1;
-      _exitCheck();
-    }
-
-    try {
-      new File('$pathToStatics${sep}index.html').copySync('${argValues[dart2jsInfoOutputPathArg]}${sep}index.html');
-    } catch (err, stackTrace) {
-      print(err);
-      print(stackTrace);
-
-      this._exitCode = -1;
-      _exitCheck();
-    }
+    await copyStaticsProcess.exitCode.then((code) {
+      if (code != 0) {
+        exit(0);
+      }
+    });
 
     // ignore: avoid_as
     final importInstructionsPath = dart2JsInfoUtilMapViewDataOutputDir.replaceFirst('./', '');
@@ -223,9 +215,9 @@ class Dart2JsInfoUtils {
     print('''
 All done!
 
-You can now explore the data in your browser by running
+You can now explore the data in your browser at localhost:8080 by running
 
-    `pub serve benchmark`
+    `pub run dart2js_info_utils:view_data`
 
 Or access it as a raw Dart map by importing it:
 
@@ -247,6 +239,117 @@ Or access it as a raw Dart map by importing it:
     ```
     ''');
 
-    _exitCheck();
+    exit(0);
   }
 }
+
+void createViewFile(DeferredLibraryLayoutView view) {
+  var file = new File(view.outFile);
+
+  if (!file.existsSync()) {
+    file.createSync(recursive: true);
+  }
+
+  file.writeAsStringSync(view.toFileString());
+}
+
+Map<String/*name*/, Version> globallyActivatedPackagesCache;
+Future<Map<String/*name*/, Version>> getGloballyActivatedPackages() async {
+  if (globallyActivatedPackagesCache != null) return globallyActivatedPackagesCache;
+
+  List<String> listGloballyActivatedPackagesCommand = [
+    'pub',
+    'global',
+    'list',
+  ];
+
+  final listGloballyActivatedPackages =
+      await Process.start(listGloballyActivatedPackagesCommand.first, listGloballyActivatedPackagesCommand.sublist(1));
+
+  globallyActivatedPackagesCache = <String, Version>{};
+  listGloballyActivatedPackages.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+    final packageNameAndVersion = line.split(' ');
+    globallyActivatedPackagesCache[packageNameAndVersion[0]] = new Version.parse(packageNameAndVersion[1]);
+  });
+
+  await listGloballyActivatedPackages.exitCode.then((code) {
+    if (code != 0) {
+      throw new ProcessException(
+          'pub global list',
+          [],
+          'Error occurred while trying to get a list of the globally activated pub packages.',
+          code);
+    }
+  });
+
+  return globallyActivatedPackagesCache;
+}
+
+Future<Null> globallyActivatePackage(String packageName,
+    [Map<String, Version> minimumPackageVersionMeta = const <String, Version>{}]) async {
+  final globallyActivatedPackages = await getGloballyActivatedPackages();
+  bool packageIsActivated = globallyActivatedPackages?.keys?.contains(packageName) == true;
+  if (!minimumPackageVersionMeta.containsKey(packageName) && packageIsActivated) return;
+
+  if (packageIsActivated) {
+    final activatedVersion = globallyActivatedPackages[packageName];
+    if (activatedVersion < minimumPackageVersionMeta[packageName]) {
+      print(color(new AnsiPen()..yellow(),
+          'Your globally activated version of the $packageName package ($activatedVersion) is not '
+          'compatible with this version of Storybook. \n\nUpgrading now...'));
+
+      List<String> deactivateCommand = [
+        'pub',
+        'global',
+        'deactivate',
+        packageName,
+      ];
+
+      final deactivate = await Process.start(deactivateCommand.first, deactivateCommand.sublist(1));
+
+      deactivate
+        ..stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(print)
+        ..stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(print);
+
+      await deactivate.exitCode;
+      print('Reactivating the $packageName package...');
+    } else {
+      return;
+    }
+  } else {
+    print('Activating the $packageName package...');
+  }
+
+  final activateCommand = [
+    'pub',
+    'global',
+    'activate',
+    packageName,
+  ];
+
+  if (minimumPackageVersionMeta.containsKey(packageName)) {
+    activateCommand.add('^${minimumPackageVersionMeta[packageName]}');
+  }
+
+  final activate = await Process.start(activateCommand.first, activateCommand.sublist(1));
+
+  activate.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+    if (line.contains('Activated $packageName')) {
+      print(color(new AnsiPen()..green(), line));
+    }
+  });
+  activate.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(print);
+
+  await activate.exitCode.then((code) {
+    if (code != 0) {
+      throw new ProcessException(
+          activateCommand.join(' '),
+          [],
+          'Error occurred while activating the $packageName package.',
+          code);
+    }
+  });
+}
+
+String color(AnsiPen pen, String message) => pen(message);
+

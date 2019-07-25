@@ -33,7 +33,7 @@ class PackageData extends BundleEntityData {
     Map<String, dynamic> deSerializedData;
 
     if (serializedData is String) {
-      deSerializedData = JSON.decode(serializedData);
+      deSerializedData = json.decode(serializedData);
     } else {
       deSerializedData = serializedData;
     }
@@ -73,7 +73,7 @@ class PackageData extends BundleEntityData {
   void addAll(List<PackageLibData> packageLibs) => packageLibs.forEach(add);
 
   Map<String, dynamic> getSerializablePackageLibData({bool serialize: true, bool showLibraryMembers: false}) {
-    var serializableData = <String, String>{};
+    var serializableData = <String, dynamic>{};
     this.packageLibData.forEach((libraryName, packageLibData) {
       if (libraryName.isNotEmpty) {
         serializableData[libraryName] = serialize
@@ -104,7 +104,7 @@ class PackageData extends BundleEntityData {
   };
 
   @override
-  String toJSON({bool showLibraryMembers: false}) => JSON.encode({
+  String toJSON({bool showLibraryMembers: false}) => json.encode({
     'name': name,
     'dart2JsInfoOutputDir': dart2JsInfoOutputDir,
     'size': size,
@@ -113,7 +113,7 @@ class PackageData extends BundleEntityData {
   });
 }
 
-class PackageDataMapView extends DataEntityMapView {
+class PackageDataMapView extends DataEntityMapView<PackageLibDataMapView> {
   PackageDataMapView(Map map) : super(map);
 
   @override
